@@ -40,8 +40,6 @@ RUN apk update && \
     apk add curl gnupg ca-certificates gzip xz iproute2 unzip net-tools procps --no-cache && \
     curl -L -O https://github.com/just-containers/s6-overlay/releases/download/v3.1.3.0/s6-overlay-noarch.tar.xz && \
     tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz && rm /tmp/s6-overlay-noarch.tar.xz && \
-    curl -L -O https://github.com/just-containers/s6-overlay/releases/download/v3.1.3.0/s6-overlay-$OVERLAY_S6_ARCH.tar.xz && \
-    tar -C / -Jxpf /tmp/s6-overlay-$OVERLAY_S6_ARCH.tar.xz && rm /tmp/s6-overlay-$OVERLAY_S6_ARCH.tar.xz && \
     addgroup -g 2222 zerotier-one && \
     adduser -u 2222 -G zerotier-one -S zerotier-one && \
     addgroup root zerotier-one && \
