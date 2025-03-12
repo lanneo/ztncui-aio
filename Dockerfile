@@ -11,10 +11,7 @@ ADD VERSION .
 WORKDIR /build
 RUN apk update && \
     apk add curl gnupg ca-certificates zip unzip build-base git --no-cache && \
-    curl -sL -o node_inst.sh https://deb.nodesource.com/setup_${NODEJS_MAJOR}.x && \
-    sh node_inst.sh && \
     apk add nodejs npm --no-cache && \
-    rm -f node_inst.sh
 COPY build-ztncui.sh /build/
 RUN sh /build/build-ztncui.sh
 
