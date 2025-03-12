@@ -1,6 +1,6 @@
-FROM alpine AS jsbuilder
+FROM alpine:latest AS jsbuilder
 ENV NODEJS_MAJOR=18
-ENV ALPINE_FRONTEND=noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 
 LABEL org.opencontainers.image.source="https://github.com/kmahyyg/ztncui-aio"
 LABEL MAINTAINER="Key Networks https://key-networks.com"
@@ -9,14 +9,14 @@ ADD VERSION .
 
 # BUILD ZTNCUI IN FIRST STAGE
 WORKDIR /build
-RUN apk update -y && \
-    apk install curl gnupg2 ca-certificates zip unzip build-essential git --no-install-recommends -y && \
+RUN apk update && \
+    apk add curl gnupg ca-certificates zip unzip build-base git --no-cache && \
     curl -sL -o node_inst.sh https://deb.nodesource.com/setup_${NODEJS_MAJOR}.x && \
-    bash node_inst.sh && \
-    apk install -y nodejs --no-install-recommends && \
+    sh node_inst.sh && \
+    apk add nodejs npm --no-cache && \
     rm -f node_inst.sh
 COPY build-ztncui.sh /build/
-RUN bash /build/build-ztncui.sh
+RUN sh /build/build-ztncui.sh
 
 # BUILD GO UTILS
 FROM golang:alpine AS gobuilder
@@ -26,32 +26,30 @@ COPY fileserv /buildsrc/fileserv
 COPY ztnodeid /buildsrc/ztnodeid
 COPY build-gobinaries.sh /buildsrc/build-gobinaries.sh
 ENV CGO_ENABLED=0
-RUN apk update -y && \ 
-    apk install zip -y && \
-    bash /buildsrc/build-gobinaries.sh
+RUN apk update && \
+    apk add zip --no-cache && \
+    sh /buildsrc/build-gobinaries.sh
 
 # START RUNNER
-FROM alpine AS runner
-ENV ALPINE_FRONTEND=noninteractive
+FROM alpine:3.18 AS runner
+ENV DEBIAN_FRONTEND=noninteractive
 ENV AUTOGEN_PLANET=0
 ARG OVERLAY_S6_ARCH
 WORKDIR /tmp
-RUN apk update -y && \
-    apk install curl gnupg2 ca-certificates gzip xz-utils iproute2 unzip net-tools procps --no-install-recommends -y && \
+RUN apk update && \
+    apk add curl gnupg ca-certificates gzip xz iproute2 unzip net-tools procps --no-cache && \
     curl -L -O https://github.com/just-containers/s6-overlay/releases/download/v3.1.3.0/s6-overlay-noarch.tar.xz && \
     tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz && rm /tmp/s6-overlay-noarch.tar.xz && \
     curl -L -O https://github.com/just-containers/s6-overlay/releases/download/v3.1.3.0/s6-overlay-$OVERLAY_S6_ARCH.tar.xz && \
     tar -C / -Jxpf /tmp/s6-overlay-$OVERLAY_S6_ARCH.tar.xz && rm /tmp/s6-overlay-$OVERLAY_S6_ARCH.tar.xz && \
-    groupadd -g 2222 zerotier-one && \
-    useradd -u 2222 -g 2222 zerotier-one && \
-    usermod -aG zerotier-one zerotier-one && \
-    usermod -aG zerotier-one root && \
+    addgroup -g 2222 zerotier-one && \
+    adduser -u 2222 -G zerotier-one -S zerotier-one && \
+    addgroup root zerotier-one && \
     curl -sL -o zt-one.sh https://install.zerotier.com && \
-    bash zt-one.sh && \
+    sh zt-one.sh && \
     rm -f zt-one.sh && \
-    apk clean -y && \
     rm -rf /var/lib/zerotier-one && \
-    rm -rf /var/lib/apk/lists/*
+    rm -rf /var/cache/apk/*
 
 WORKDIR /opt/key-networks/ztncui
 COPY --from=jsbuilder /build/artifact.zip .
